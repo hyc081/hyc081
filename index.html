@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圆柱体容积计算</title>
+    <!-- 引入Google字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto:wght@400;700&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <!-- 引入MathJax用于数学公式渲染 -->
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+        /* 全局样式 */
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: #00ffcc;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        /* 游戏容器 */
+        .game-container {
+            margin: 50px auto;
+            padding: 30px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+            max-width: 800px;
+            border: 2px solid #00ffcc;
+        }
+
+        h1 {
+            font-size: 3rem;
+            text-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc;
+            animation: glow 2s infinite alternate;
+        }
+
+        h2 {
+            font-size: 2rem;
+            color: #00ffcc;
+            text-shadow: 0 0 5px #00ffcc;
+        }
+
+        p {
+            font-family: 'Roboto', sans-serif;
+            color: #ffffff;
+            font-size: 1.2rem;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+            border: 2px solid #00ffcc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+        }
+
+        .question {
+            margin-bottom: 20px;
+        }
+
+        /* 选择填空题样式 */
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .option {
+            padding: 10px;
+            background: #00ffcc;
+            color: #000;
+            border-radius: 5px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.3s, transform 0.3s;
+            font-family: 'Dancing Script', cursive; /* 手写体字体 */
+            font-size: 1.2rem;
+        }
+
+        .option:hover {
+            background: #00ccaa;
+            transform: scale(1.05);
+        }
+
+        .option:active {
+            transform: scale(0.95);
+        }
+
+        .option.selected::before {
+            content: "√ "; /* 打勾符号 */
+            color: #00ff00;
+            font-weight: bold;
+        }
+
+        /* 按钮样式 */
+        .button {
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            background: #00ffcc;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s, transform 0.3s;
+        }
+
+        .button:hover {
+            background: #00ccaa;
+            transform: scale(1.1);
+        }
+
+        .button:active {
+            transform: scale(0.9);
+        }
+
+        /* 得分显示 */
+        .score {
+            font-size: 1.5rem;
+            color: #00ffcc;
+            text-shadow: 0 0 5px #00ffcc;
+            margin-bottom: 20px;
+        }
+
+        /* 动画效果 */
+        @keyframes glow {
+            0% {
+                text-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc;
+            }
+            100% {
+                text-shadow: 0 0 20px #00ffcc, 0 0 40px #00ffcc;
+            }
+        }
+
+        /* 通关结果 */
+        #result {
+            display: none;
+            animation: fadeIn 2s;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* 弹框样式 */
+        .alert-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #00ffcc;
+            border-radius: 10px;
+            padding: 20px;
+            color: #00ffcc;
+            font-size: 1rem; /* 默认字体大小 */
+            text-align: center;
+            z-index: 1000;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+        }
+
+        .alert-box.correct {
+            font-size: 2rem; /* 回答正确字体加大2倍 */
+            color: #00ffcc;
+        }
+
+        .alert-box.wrong {
+            font-size: 2rem; /* 回答错误字体加大2倍 */
+            color: #ff0000;
+        }
+
+        /* 视频容器 */
+        #video-container {
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+        }
+
+        #video-container video {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid #00ffcc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景音乐 -->
+    <audio id="background-music" loop>
+        <source src="sounds/background-music.mp3" type="audio/mpeg">
+        您的浏览器不支持音频播放。
+    </audio>
+
+    <div class="game-container">
+        <h1>圆柱体容积计算学习网</h1>
+        <div class="score" id="score">得分: 0</div>
+        
+        <!-- 播放背景音乐的按钮 -->
+        <button class="button" id="play-music-button">播放背景音乐</button>
+
+        <!-- 课前计算题 -->
+        <div id="pre-class" class="level">
+            <h2>课前计算题</h2>
+            <div class="question">
+                <p> 简便计算：\(\frac{2}{3} \times \left( \frac{3}{4} + \frac{1}{2} \right)\)</p>
+                <p>第一步： 利用乘法分配律计算：\(\frac{2}{3} \times \left( \frac{3}{4} + \frac{1}{2} \right)\)</p>
+                <div class="options">
+                    <div class="option" data-value="A">A.  \(\frac{2}{3} \times \frac{1}{2}\)</div>
+                    <div class="option" data-value="B">B. \(\frac{2}{3} \times \frac{5}{4}\)</div>
+                    <div class="option" data-value="C">C.\(\frac{2}{3} \times \frac{3}{4} + \frac{2}{3} \times \frac{1}{2}\)</div>
+                </div>
+                <p>第二步：计算每一项的乘积：</p>
+                <div class="options">
+                    <div class="option" data-value="A">A.\(\frac{1}{2} + \frac{2}{3}\)</div> 
+                    <div class="option" data-value="B">B. \(\frac{2}{3} + \frac{1}{3}\)</div>
+                    <div class="option" data-value="C">C. \(\frac{1}{2} + \frac{1}{3}\)</div>
+                </div>
+                <p>第三步：将结果相加：</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. \(\frac{3}{4}\)</div>
+                    <div class="option" data-value="B">B. \(\frac{5}{6}\)</div>
+                    <div class="option" data-value="C">C. \(\frac{2}{3}\)</div>
+                </div>
+            </div>
+            <button class="button" onclick="checkPreClass()">提交</button>
+        </div>
+
+        <!-- 视频播放 -->
+        <div id="video-container" style="display:none;">
+            <h2>圆柱体容积计算视频</h2>
+            <video id="video" controls>
+                <source src="videos/cylinder_volume.mp4" type="video/mp4">
+                您的浏览器不支持视频播放。
+            </video>
+            <button class="button" onclick="startGame()">开始游戏</button>
+        </div>
+
+        <!-- 第一关：分步填空 -->
+        <div id="level1" class="level" style="display:none;">
+            <h2>第一关：分步理解</h2>
+            <p>一个茶杯的底面直径是8cm，高是10cm。一袋牛奶的容积是240ml。这个杯子能装下两袋牛奶吗？</p>
+            <div class="question">
+                <p>1. 题目已知什么？</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. 底面直径是4cm，高是10cm</div>
+                    <div class="option" data-value="B">B. 底面半径是8cm，高是10cm</div>
+                    <div class="option" data-value="C">C. 底面直径是8cm，高是10cm</div>
+                </div>
+                <p>2. 题目要求什么？</p>
+                <div class="options">
+                    <div class="option" data-value="A">A.杯子的体积是多少</div> 
+                    <div class="option" data-value="B">B. 杯子能否装下两袋牛奶</div>
+                    <div class="option" data-value="C">C. 杯子的表面积是多少</div>
+                </div>
+                <p>3. 为什么要从里面量杯子的直径和高？</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. 因为要计算内部容积</div>
+                    <div class="option" data-value="B">B. 因为要计算外部容积</div>
+                    <div class="option" data-value="C">C. 因为要计算杯子的重量</div>
+                </div>
+            </div>
+            <button class="button" onclick="checkLevel1()">提交</button>
+            <button class="button" onclick="prevLevel()">上一页</button>
+            <button class="button" onclick="nextLevel()">下一页</button>
+        </div>
+
+        <!-- 第二关：计算圆柱体积 -->
+        <div id="level2" class="level" style="display:none;">
+            <h2>第二关：计算圆柱体积</h2>
+            <p>一个圆柱体的底面半径是5cm，高是12cm。请计算它的体积。</p>
+            <div class="question">
+                <p>1. 圆柱体积的公式是什么？</p>
+                <div class="options">
+                    <div class="option" data-value="A">A.\(V = \pi r^2\)</div>
+                    <div class="option" data-value="B">B. \(V = \pi r h\)</div>
+                    <div class="option" data-value="C">C. \(V = \pi r^2 h\)</div>
+                </div>
+                <p>2. 计算底面积：</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. \(3.14×5×2)</div>
+                    <div class="option" data-value="B">B. \(3.14×5²)</div>
+                    <div class="option" data-value="C">C. \(2×3.14×5×12)</div>
+                </div>
+                <p>3. 计算体积：</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. \(3.14×5×2×12)</div>
+                    <div class="option" data-value="B">B. \(2×3.14×5×12)</div>
+                    <div class="option" data-value="C">C. \(3.14×5²×12)</div>
+                </div>
+            </div>
+            <button class="button" onclick="checkLevel2()">提交</button>
+            <button class="button" onclick="prevLevel()">上一页</button>
+            <button class="button" onclick="nextLevel()">下一页</button>
+        </div>
+
+        <!-- 第三关：单位转换 -->
+        <div id="level3" class="level" style="display:none;">
+            <h2>第三关：单位转换</h2>
+            <p>一个圆柱体的体积是\(300\pi\) cm³，请将其转换为升（L）。</p>
+            <div class="question">
+                <p>1. 1升等于多少立方厘米？</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. 1000 cm³</div>
+                    <div class="option" data-value="B">B. 10 cm³</div>
+                    <div class="option" data-value="C">C. 100 cm³</div>
+                </div>
+                <p>2. 计算体积的升数：</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. 0.03 L</div>
+                    <div class="option" data-value="B">B. 0.3 L</div>
+                    <div class="option" data-value="C">C. 3 L</div>
+                </div>
+            </div>
+            <button class="button" onclick="checkLevel3()">提交</button>
+            <button class="button" onclick="prevLevel()">上一页</button>
+            <button class="button" onclick="nextLevel()">下一页</button>
+        </div>
+
+        <!-- 第四关：实际应用 -->
+        <div id="level4" class="level" style="display:none;">
+            <h2>第四关：实际应用</h2>
+            <p>一个圆柱形水桶的底面半径是10cm，高是30cm。如果水桶中已经装了15cm高的水，请问水的体积是多少？</p>
+            <div class="question">
+                <p>1. 水桶的体积公式是什么？</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. \(V = \pi r^2 h\)</div>
+                    <div class="option" data-value="B">B. \(V = \pi r h\)</div>
+                    <div class="option" data-value="C">C. \(V = \pi r^2\)</div>
+                </div>
+                <p>2. 计算水的体积：</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. \(3.14×10×15) cm³</div>
+                    <div class="option" data-value="B">B. \(3.14×10×15×30) cm³</div>
+                    <div class="option" data-value="C">C. \(3.14×10²×15) cm³</div>
+                </div>
+            </div>
+            <button class="button" onclick="checkLevel4()">提交</button>
+            <button class="button" onclick="prevLevel()">上一页</button>
+            <button class="button" onclick="nextLevel()">下一页</button>
+        </div>
+
+        <!-- 第五关：复杂问题 -->
+        <div id="level5" class="level" style="display:none;">
+            <h2>第五关：复杂问题</h2>
+            <p>一个圆柱体的底面半径是6cm，高是15cm。如果它的体积增加了50%，请问新的体积是多少？</p>
+            <div class="question">
+                <p>1. 原体积是多少？</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. \(3.14×6²×15×(1+50%)) cm³</div>
+                    <div class="option" data-value="B">B. \(3.14×6²×15) cm³</div>
+                    <div class="option" data-value="C">C. \(3.14×6²×15×50%) cm³</div>
+                </div>
+                <p>2. 增加50%后的体积是多少？</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. \(3.14×6²×15) cm³</div>
+                    <div class="option" data-value="B">B. \(3.14×6²×15×(1+50%)) cm³</div>
+                    <div class="option" data-value="C">C. \(3.14×6²×15×50%) cm³</div>
+                </div>
+            </div>
+            <button class="button" onclick="checkLevel5()">提交</button>
+            <button class="button" onclick="prevLevel()">上一页</button>
+            <button class="button" onclick="nextLevel()">下一页</button>
+        </div>
+
+        <!-- 第六关：综合应用 -->
+        <div id="level6" class="level" style="display:none;">
+            <h2>第六关：综合应用</h2>
+            <p>一个圆柱形油罐的底面半径是2米，高是5米。如果油罐中已经装了3米高的油，请问油的体积是多少立方米？</p>
+            <div class="question">
+                <p>1. 油的体积公式是什么？</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. \(V = \pi r^2 h\)</div>
+                    <div class="option" data-value="B">B. \(V = \pi r h\)</div>
+                    <div class="option" data-value="C">C. \(V = \pi r^2\)</div>
+                </div>
+                <p>2. 计算油的体积：</p>
+                <div class="options">
+                    <div class="option" data-value="A">A. \(12\pi\) m³</div>
+                    <div class="option" data-value="B">B. \(24\pi\) m³</div>
+                    <div class="option" data-value="C">C. \(36\pi\) m³</div>
+                </div>
+            </div>
+            <button class="button" onclick="checkLevel6()">提交</button>
+            <button class="button" onclick="prevLevel()">上一页</button>
+            <button class="button" onclick="nextLevel()">下一页</button>
+        </div>
+
+        <!-- 通关结果 -->
+        <div id="result" style="display:none;">
+            <h2>恭喜您成功通关！</h2>
+            <p>您成功通过了所有关卡，获得了宝藏！</p>
+            <img src="images/treasure.jpg" alt="宝藏图片">
+            <div class="score">最终得分: <span id="finalScore">0</span></div>
+        </div>
+    </div>
+
+    <!-- 音效 -->
+    <audio id="correctSound" src="sounds/correct.mp3"></audio>
+    <audio id="wrongSound" src="sounds/wrong.mp3"></audio>
+    <audio id="congratsSound" src="sounds/congrats.mp3"></audio>
+
+    <script>
+        let currentLevel = 1;
+        let score = 0;
+        const answers = {
+            preClass: {
+                step1: "C",
+                step2: "C",
+                step3: "B"
+            },
+            level1: {
+                step1: "C",
+                step2: "B",
+                step3: "A"
+            },
+            level2: {
+                step1: "C",
+                step2: "B",
+                step3: "C"
+            },
+            level3: {
+                step1: "A",
+                step2: "B"
+            },
+            level4: {
+                step1: "A",
+                step2: "C"
+            },
+            level5: {
+                step1: "B",
+                step2: "B"
+            },
+            level6: {
+                step1: "A",
+                step2: "A"
+            }
+        };
+
+        // 背景音乐和视频音量控制
+        const backgroundMusic = document.getElementById("background-music");
+        const video = document.getElementById("video");
+        const playMusicButton = document.getElementById("play-music-button");
+
+        // 点击按钮播放或暂停背景音乐
+        playMusicButton.addEventListener("click", () => {
+            if (backgroundMusic.paused) {
+                backgroundMusic.volume = 0.5; // 设置音量
+                backgroundMusic.play(); // 播放音乐
+                playMusicButton.textContent = "暂停背景音乐"; // 更新按钮文字
+            } else {
+                backgroundMusic.pause(); // 暂停音乐
+                playMusicButton.textContent = "播放背景音乐"; // 更新按钮文字
+            }
+        });
+
+        // 监听视频播放事件
+        video.addEventListener("play", () => {
+            backgroundMusic.volume = 0.1; // 视频播放时背景音乐音量调低
+        });
+
+        // 监听视频暂停事件
+        video.addEventListener("pause", () => {
+            backgroundMusic.volume = 0.5; // 视频暂停时恢复背景音乐音量
+        });
+
+        function showAlert(message, isCorrect) {
+            const alertBox = document.createElement("div");
+            alertBox.className = `alert-box ${isCorrect ? "correct" : "wrong"}`;
+            alertBox.textContent = message;
+            document.body.appendChild(alertBox);
+
+            // 3秒后移除弹框
+            setTimeout(() => {
+                alertBox.remove();
+            }, 3000);
+        }
+
+        // 选择功能
+        document.querySelectorAll('.option').forEach(option => {
+            option.addEventListener('click', () => {
+                // 清除其他选项的选中状态
+                option.parentElement.querySelectorAll('.option').forEach(o => {
+                    o.classList.remove('selected');
+                    o.style.backgroundColor = '#00ffcc';
+                    o.dataset.selected = "false"; // 确保其他选项未选中
+                });
+                // 设置当前选项为选中状态
+                option.classList.add('selected');
+                option.style.backgroundColor = '#00ccaa';
+                option.dataset.selected = "true"; // 确保当前选项已选中
+            });
+        });
+
+        function startGame() {
+            document.getElementById("video-container").style.display = "none";
+            document.getElementById("level1").style.display = "block";
+        }
+
+        function prevLevel() {
+            if (currentLevel > 1) {
+                currentLevel--;
+                showLevel(currentLevel);
+            }
+        }
+
+        function nextLevel() {
+            if (currentLevel < 6) {
+                currentLevel++;
+                showLevel(currentLevel);
+            }
+        }
+
+        function showLevel(level) {
+            document.querySelectorAll('.level').forEach(level => {
+                level.style.display = "none";
+            });
+            document.getElementById(`level${level}`).style.display = "block";
+        }
+
+        function checkPreClass() {
+            const options = document.querySelectorAll('#pre-class .option[data-selected="true"]');
+            if (options.length !== 3) {
+                showAlert("请完成所有题目！", false);
+                return;
+            }
+
+            const step1 = options[0].dataset.value;
+            const step2 = options[1].dataset.value;
+            const step3 = options[2].dataset.value;
+
+            if (step1 === answers.preClass.step1 && step2 === answers.preClass.step2 && step3 === answers.preClass.step3) {
+                showAlert("课前计算题回答正确！", true);
+                document.getElementById("correctSound").play(); // 播放正确音效
+                score += 10; // 得10分
+
+                // 清除选中状态
+                document.querySelectorAll('#pre-class .option').forEach(option => {
+                    option.classList.remove('selected');
+                    option.style.backgroundColor = '#00ffcc';
+                    option.dataset.selected = "false";
+                });
+
+                // 显示视频
+                document.getElementById("pre-class").style.display = "none";
+                document.getElementById("video-container").style.display = "block";
+            } else {
+                showAlert("课前计算题回答错误！请重新选择答案。", false);
+                document.getElementById("wrongSound").play(); // 播放错误音效
+
+                // 清除选中状态
+                document.querySelectorAll('#pre-class .option').forEach(option => {
+                    option.classList.remove('selected');
+                    option.style.backgroundColor = '#00ffcc';
+                    option.dataset.selected = "false";
+                });
+            }
+
+            // 更新得分
+            document.getElementById("score").textContent = `得分: ${score}`;
+        }
+
+        function checkLevel1() {
+            const options = document.querySelectorAll('#level1 .option[data-selected="true"]');
+            if (options.length !== 3) {
+                showAlert("请完成所有题目！", false);
+                return;
+            }
+
+            const step1 = options[0].dataset.value;
+            const step2 = options[1].dataset.value;
+            const step3 = options[2].dataset.value;
+
+            if (step1 === answers.level1.step1 && step2 === answers.level1.step2 && step3 === answers.level1.step3) {
+                showAlert("回答正确！", true);
+                document.getElementById("correctSound").play(); // 播放正确音效
+                score += 10; // 得10分
+
+                // 显示第二关
+                document.getElementById("level1").style.display = "none";
+                document.getElementById("level2").style.display = "block";
+            } else {
+                showAlert("回答错误！请重新选择答案。", false);
+                document.getElementById("wrongSound").play(); // 播放错误音效
+
+                // 清除选中状态，允许用户重新选择
+                document.querySelectorAll('#level1 .option').forEach(option => {
+                    option.classList.remove('selected');
+                    option.style.backgroundColor = '#00ffcc';
+                    option.dataset.selected = "false"; // 重置选中状态
+                });
+            }
+
+            // 更新得分
+            document.getElementById("score").textContent = `得分: ${score}`;
+        }
+
+        function checkLevel2() {
+            const options = document.querySelectorAll('#level2 .option[data-selected="true"]');
+            if (options.length !== 3) {
+                showAlert("请完成所有题目！", false);
+                return;
+            }
+
+            const step1 = options[0].dataset.value;
+            const step2 = options[1].dataset.value;
+            const step3 = options[2].dataset.value;
+
+            if (step1 === answers.level2.step1 && step2 === answers.level2.step2 && step3 === answers.level2.step3) {
+                showAlert("回答正确！", true);
+                document.getElementById("correctSound").play(); // 播放正确音效
+                score += 10; // 得10分
+
+                // 显示第三关
+                document.getElementById("level2").style.display = "none";
+                document.getElementById("level3").style.display = "block";
+            } else {
+                showAlert("回答错误！请重新选择答案。", false);
+                document.getElementById("wrongSound").play(); // 播放错误音效
+
+                // 清除选中状态，允许用户重新选择
+                document.querySelectorAll('#level2 .option').forEach(option => {
+                    option.classList.remove('selected');
+                    option.style.backgroundColor = '#00ffcc';
+                    option.dataset.selected = "false"; // 重置选中状态
+                });
+            }
+
+            // 更新得分
+            document.getElementById("score").textContent = `得分: ${score}`;
+        }
+
+        function checkLevel3() {
+            const options = document.querySelectorAll('#level3 .option[data-selected="true"]');
+            if (options.length !== 2) {
+                showAlert("请完成所有题目！", false);
+                return;
+            }
+
+            const step1 = options[0].dataset.value;
+            const step2 = options[1].dataset.value;
+
+            if (step1 === answers.level3.step1 && step2 === answers.level3.step2) {
+                showAlert("回答正确！", true);
+                document.getElementById("correctSound").play(); // 播放正确音效
+                score += 10; // 得10分
+
+                // 显示第四关
+                document.getElementById("level3").style.display = "none";
+                document.getElementById("level4").style.display = "block";
+            } else {
+                showAlert("回答错误！请重新选择答案。", false);
+                document.getElementById("wrongSound").play(); // 播放错误音效
+
+                // 清除选中状态，允许用户重新选择
+                document.querySelectorAll('#level3 .option').forEach(option => {
+                    option.classList.remove('selected');
+                    option.style.backgroundColor = '#00ffcc';
+                    option.dataset.selected = "false"; // 重置选中状态
+                });
+            }
+
+            // 更新得分
+            document.getElementById("score").textContent = `得分: ${score}`;
+        }
+
+        function checkLevel4() {
+            const options = document.querySelectorAll('#level4 .option[data-selected="true"]');
+            if (options.length !== 2) {
+                showAlert("请完成所有题目！", false);
+                return;
+            }
+
+            const step1 = options[0].dataset.value;
+            const step2 = options[1].dataset.value;
+
+            if (step1 === answers.level4.step1 && step2 === answers.level4.step2) {
+                showAlert("回答正确！", true);
+                document.getElementById("correctSound").play(); // 播放正确音效
+                score += 10; // 得10分
+
+                // 显示第五关
+                document.getElementById("level4").style.display = "none";
+                document.getElementById("level5").style.display = "block";
+            } else {
+                showAlert("回答错误！请重新选择答案。", false);
+                document.getElementById("wrongSound").play(); // 播放错误音效
+
+                // 清除选中状态，允许用户重新选择
+                document.querySelectorAll('#level4 .option').forEach(option => {
+                    option.classList.remove('selected');
+                    option.style.backgroundColor = '#00ffcc';
+                    option.dataset.selected = "false"; // 重置选中状态
+                });
+            }
+
+            // 更新得分
+            document.getElementById("score").textContent = `得分: ${score}`;
+        }
+
+        function checkLevel5() {
+            const options = document.querySelectorAll('#level5 .option[data-selected="true"]');
+            if (options.length !== 2) {
+                showAlert("请完成所有题目！", false);
+                return;
+            }
+
+            const step1 = options[0].dataset.value;
+            const step2 = options[1].dataset.value;
+
+            if (step1 === answers.level5.step1 && step2 === answers.level5.step2) {
+                showAlert("回答正确！", true);
+                document.getElementById("correctSound").play(); // 播放正确音效
+                score += 10; // 得10分
+
+                // 显示第六关
+                document.getElementById("level5").style.display = "none";
+                document.getElementById("level6").style.display = "block";
+            } else {
+                showAlert("回答错误！请重新选择答案。", false);
+                document.getElementById("wrongSound").play(); // 播放错误音效
+
+                // 清除选中状态，允许用户重新选择
+                document.querySelectorAll('#level5 .option').forEach(option => {
+                    option.classList.remove('selected');
+                    option.style.backgroundColor = '#00ffcc';
+                    option.dataset.selected = "false"; // 重置选中状态
+                });
+            }
+
+            // 更新得分
+            document.getElementById("score").textContent = `得分: ${score}`;
+        }
+
+        function checkLevel6() {
+            const options = document.querySelectorAll('#level6 .option[data-selected="true"]');
+            if (options.length !== 2) {
+                showAlert("请完成所有题目！", false);
+                return;
+            }
+
+            const step1 = options[0].dataset.value;
+            const step2 = options[1].dataset.value;
+
+            if (step1 === answers.level6.step1 && step2 === answers.level6.step2) {
+                showAlert("回答正确！", true);
+                document.getElementById("correctSound").play(); // 播放正确音效
+                score += 10; // 得10分
+
+                // 显示通关结果
+                document.getElementById("level6").style.display = "none";
+                document.getElementById("result").style.display = "block";
+                document.getElementById("finalScore").textContent = score;
+                document.getElementById("congratsSound").play();
+            } else {
+                showAlert("回答错误！请重新选择答案。", false);
+                document.getElementById("wrongSound").play(); // 播放错误音效
+
+                // 清除选中状态，允许用户重新选择
+                document.querySelectorAll('#level6 .option').forEach(option => {
+                    option.classList.remove('selected');
+                    option.style.backgroundColor = '#00ffcc';
+                    option.dataset.selected = "false"; // 重置选中状态
+                });
+            }
+
+            // 更新得分
+            document.getElementById("score").textContent = `得分: ${score}`;
+        }
+    </script>
+</body>
+</html>
